@@ -1,0 +1,136 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ------------------ Роли (enum) ------------------
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+// ------------------ Пользователи ------------------
+model User {
+  id         Int      @id @default(autoincrement())
+  firstName  String
+  lastName   String
+  patronymic String? // Отчество может быть необязательным
+  email      String   @unique
+  password   String
+  role       Role     @default(STUDENT)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Связь с результатами тестов
+  testResults TestResult[]
+
+  // Связь с тестами, которые пользователь создал как учитель
+  tests Test[]
+}
+
+// ------------------ Классы ------------------
+model Class {
+  id     Int @id @default(autoincrement())
+  number Int // 4, 5, 6, ... 11
+
+  // Связь многие-ко-многим через ClassSubject
+  subjects ClassSubject[]
+  tests    Test[]
+}
+
+// ------------------ Предметы ------------------
+model Subject {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  // Связь многие-ко-многим через ClassSubject
+  classes ClassSubject[]
+  tests   Test[]
+}
+
+// ------------------ Связка "Класс - Предмет" ------------------
+model ClassSubject {
+  id        Int     @id @default(autoincrement())
+  class     Class   @relation(fields: [classId], references: [id])
+  classId   Int
+  subject   Subject @relation(fields: [subjectId], references: [id])
+  subjectId Int
+
+  // Чтобы в одной паре (classId, subjectId) не было дубликаций
+  @@unique([classId, subjectId])
+}
+
+// ------------------ Тесты ------------------
+model Test {
+  id        Int      @id @default(autoincrement())
+  title     String
+  banner    String? // Ссылка на картинку или цвет
+  duration  Int? // Длительность в минутах
+  code      String? // Уникальный код после публикации
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Внешние ключи и связи
+  teacher   User @relation(fields: [teacherId], references: [id])
+  teacherId Int
+
+  subject   Subject? @relation(fields: [subjectId], references: [id])
+  subjectId Int?
+
+  class   Class? @relation(fields: [classId], references: [id])
+  classId Int?
+
+  questions   Question[]
+  testResults TestResult[]
+}
+
+// ------------------ Вопросы ------------------
+model Question {
+  id      Int          @id @default(autoincrement())
+  text    String
+  type    QuestionType
+  test    Test         @relation(fields: [testId], references: [id])
+  testId  Int
+  answers Answer[]
+}
+
+// Тип вопроса (один или несколько правильных ответов)
+enum QuestionType {
+  SINGLE
+  MULTIPLE
+}
+
+// ------------------ Ответы ------------------
+model Answer {
+  id         Int      @id @default(autoincrement())
+  text       String
+  isCorrect  Boolean  @default(false)
+  question   Question @relation(fields: [questionId], references: [id])
+  questionId Int
+}
+
+// ------------------ Результаты прохождения ------------------
+model TestResult {
+  id             Int      @id @default(autoincrement())
+  score          Int
+  totalQuestions Int
+  takenAt        DateTime @default(now())
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  test   Test @relation(fields: [testId], references: [id])
+  testId Int
+}
