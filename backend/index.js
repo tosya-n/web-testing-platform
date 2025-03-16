@@ -1,3 +1,5 @@
+require('express-async-errors')
+
 const express = require('express')
 const cors = require('cors')
 const helmet = require('helmet')
@@ -28,6 +30,11 @@ app.use('/api/admin', adminRoutes)
 // Пример корневого эндпоинта
 app.get('/', (req, res) => {
   res.send('Web Testing Platform API is running!')
+})
+
+app.use((err, req, res, next) => {
+  console.error(err.stack)
+  res.status(500).json({ message: 'Внутренняя ошибка сервера' })
 })
 
 // Запуск сервера
