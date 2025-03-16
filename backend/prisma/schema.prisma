@@ -77,7 +77,7 @@ model Test {
   title     String
   banner    String? // Ссылка на картинку или цвет
   duration  Int? // Длительность в минутах
-  code      String? // Уникальный код после публикации
+  code      String? @unique // Уникальный код после публикации
   published Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
